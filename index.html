@@ -259,22 +259,10 @@
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-      if (isAndroid) {
-        // Android: direct verbinden via wifi: deep link
-        const ssid = c.wifiSsid.replace(/([\\;,:"'])/g, '\\$1');
-        let wifiStr = `WIFI:T:${c.wifiType};S:${ssid};`;
-        if (c.wifiType !== 'nopass') {
-          wifiStr += `P:${c.wifiPassword.replace(/([\\;,:"'])/g, '\\$1')};`;
-        }
-        wifiStr += ';';
-        $('wifiLink').style.display = 'flex';
-        $('wifiLink').href = 'wifi:' + encodeURIComponent(wifiStr);
-        $('wifiNote').textContent =
-          'Tip: de knop hierboven is het snelst. Anders kopieer je het wachtwoord en plak je het in de wifi-instellingen.';
-      } else if (isIOS) {
+
         $('wifiNote').textContent =
           'Kopieer het wachtwoord en ga naar Instellingen → Wi-Fi → tik op “' + c.wifiSsid + '” → plak.';
-      }
+    
     }
 
     setupIban();
