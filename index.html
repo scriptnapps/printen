@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Welkom bij ons</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card2: #273449;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --good: #34d399;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    max-width: 520px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  header { text-align: center; margin-bottom: 20px; }
+  .logo {
+    width: 64px; height: 64px; border-radius: 20px; margin: 0 auto 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center; font-size: 30px;
+    box-shadow: 0 8px 24px rgba(56,189,248,.35);
+  }
+  h1 { font-size: 22px; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  }
+  .card h2 {
+    font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* --- IBAN --- */
+  .iban-row {
+    background: var(--card2);
+    border: 1px dashed rgba(148,163,184,.4);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    user-select: all;
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 17px;
+    letter-spacing: .04em;
+    line-height: 1.5;
+  }
+  .iban-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip {
+    background: rgba(56,189,248,.12); color: var(--accent);
+    font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+  }
+  .btn {
+    width: 100%;
+    border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0b1220; font-weight: 700; font-size: 16px;
+    padding: 15px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform .1s ease, opacity .2s;
+    box-shadow: 0 6px 18px rgba(56,189,248,.3);
+    text-decoration: none;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn.success { background: linear-gradient(135deg, var(--good), #059669); color: #fff; }
+  .btn.secondary {
+    background: var(--card2); color: var(--text); box-shadow: none;
+    border: 1px solid rgba(148,163,184,.35);
+  }
+  .note { color: var(--muted); font-size: 12.5px; margin-top: 10px; text-align: center; line-height: 1.5; }
+
+  /* --- WiFi --- */
+  .wifi-info { text-align: center; margin-bottom: 14px; }
+  .wifi-name { font-size: 18px; font-weight: 700; }
+  .wifi-pass { font-size: 18px; font-weight: 700; }
+  .wifi-detail { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  /* --- Toast --- */
+  #toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: #0b1220; color: var(--text);
+    padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
+    box-shadow: 0 8px 30px rgba(0,0,0,.5);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 100;
+    border: 1px solid rgba(148,163,184,.3);
+    max-width: calc(100vw - 40px);
+    text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .config-hint { text-align:center; color:#64748b; font-size:12px; margin-top:18px; }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🏠</div>
+    <h1>Welkom bij ons</h1>
+    <div class="sub">WiFi &amp; bankgegevens</div>
+  </header>
+
+  <div class="card" id="ibanCard">
+    <h2>💳 Bankgegevens</h2>
+    <div class="iban-row" id="ibanText">Laden…</div>
+    <div class="iban-meta" id="ibanMeta"></div>
+    <button class="btn" id="copyBtn">📋 Kopieer IBAN</button>
+    <p class="note">Tik op de IBAN of op de knop om te kopiëren.</p>
+  </div>
+
+  <div class="card" id="wifiCard">
+    <h2>📶 WiFi</h2>
+    <div class="wifi-info">
+      <div class="wifi-name" id="wifiName">—</div>
+      <div class="wifi-pass" id="wifiPasss">—</div>
+      <div class="wifi-detail" id="wifiDetail"></div>
+    </div>
+    <button class="btn" id="copyWifiBtn">🔑 Kopieer wifi-wachtwoord</button>
+    <a id="wifiLink" class="btn secondary" style="display:none; margin-top:10px;">
+      🔗 Direct verbinden (Android)
+    </a>
+    <p class="note" id="wifiNote">Tik om het wachtwoord te kopiëren en plak het wanneer je telefoon erom vraagt.</p>
+  </div>
+
+  <div id="toast"></div>
+
+  <p class="config-hint"></p>
+
+  <script>
+    // ================= CONFIG — pas deze waarden aan =================
+    const CONFIG = {
+      iban: "NL78KNAB0775786071",             // ← jouw IBAN (zonder spaties)
+      bic:  "KNABNL2H",                       // ← jouw BIC (Knab = KNABNL2H)
+      holder: "Irfans 2dehands fietsen",                              // ← jouw naam (optioneel, bijv. "Jan Jansen")
+      purpose: "Printen",           // ← betaalomschrijving (optioneel)
+
+      wifiSsid: "printwifi",                 // ← naam van je wifi-netwerk
+      wifiPassword: "printwifi",            // ← wifi-wachtwoord (nog invullen!)
+      wifiType: "WPA"                         // WPA, WEP, of "nopass" voor een open netwerk
+    };
+    // =============================================================
+
+    /* ---------- helpers ---------- */
+    const $ = id => document.getElementById(id);
+    let toastTimer;
+
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        // fallback voor oudere mobiele browsers
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (_) {}
+        document.body.removeChild(ta);
+        return ok;
+      }
+    }
+
+    /* ---------- IBAN ---------- */
+    function setupIban() {
+      const c = CONFIG;
+      // weergave: groepen van 4 (bijv. NL78 KNAB 0775 7860 71)
+      $('ibanText').textContent = c.iban.replace(/(.{4})/g, '$1 ').trim();
+
+      const meta = [];
+      if (c.holder) meta.push(`👤 ${c.holder}`);
+      if (c.bic)    meta.push(`🏦 BIC: ${c.bic}`);
+      if (c.purpose)meta.push(`📝 ${c.purpose}`);
+      $('ibanMeta').innerHTML = meta.map(m => `<span class="chip">${m}</span>`).join('');
+
+      const btn = $('copyBtn');
+      btn.addEventListener('click', async () => {
+        if (await copyText(c.iban)) {
+          btn.classList.add('success');
+          btn.innerHTML = '✅ Gekopieerd!';
+          toast('IBAN gekopieerd naar klembord');
+          setTimeout(() => {
+            btn.classList.remove('success');
+            btn.innerHTML = '📋 Kopieer IBAN';
+          }, 1600);
+        } else {
+          toast('Kopiëren mislukt — tik op de IBAN om te selecteren');
+        }
+      });
+      // tik op de IBAN zelf kopieert ook
+      $('ibanText').addEventListener('click', async () => {
+        if (await copyText(c.iban)) toast('IBAN gekopieerd naar klembord');
+      });
+    }
+
+    /* ---------- WiFi ---------- */
+    function setupWifi() {
+      const c = CONFIG;
+      $('wifiName').textContent = c.wifiSsid;
+      $('wifiPasss').textContent = c.wifiPassword;
+      $('wifiDetail').textContent =
+        c.wifiType === 'nopass' ? 'Open netwerk — geen wachtwoord' : 'WPA2 / WPA beveiligd';
+
+      // wachtwoord-knop
+      const btn = $('copyWifiBtn');
+      btn.addEventListener('click', async () => {
+        if (c.wifiType === 'nopass') {
+          toast('Dit netwerk heeft geen wachtwoord');
+          return;
+        }
+        if (await copyText(c.wifiPassword)) {
+          btn.classList.add('success');
+          btn.innerHTML = '✅ Wachtwoord gekopieerd!';
+          toast('Open wifi-instellingen → tik op netwerk → plak');
+          setTimeout(() => {
+            btn.classList.remove('success');
+            btn.innerHTML = '🔑 Kopieer wifi-wachtwoord';
+          }, 1800);
+        } else {
+          toast('Kopiëren mislukt — houd het wachtwoord ingedrukt om te selecteren');
+        }
+      });
+
+      // Platform detectie
+      const isAndroid = /Android/.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (isAndroid) {
+        // Android: direct verbinden via wifi: deep link
+        const ssid = c.wifiSsid.replace(/([\\;,:"'])/g, '\\$1');
+        let wifiStr = `WIFI:T:${c.wifiType};S:${ssid};`;
+        if (c.wifiType !== 'nopass') {
+          wifiStr += `P:${c.wifiPassword.replace(/([\\;,:"'])/g, '\\$1')};`;
+        }
+        wifiStr += ';';
+        $('wifiLink').style.display = 'flex';
+        $('wifiLink').href = 'wifi:' + encodeURIComponent(wifiStr);
+        $('wifiNote').textContent =
+          'Tip: de knop hierboven is het snelst. Anders kopieer je het wachtwoord en plak je het in de wifi-instellingen.';
+      } else if (isIOS) {
+        $('wifiNote').textContent =
+          'Kopieer het wachtwoord en ga naar Instellingen → Wi-Fi → tik op “' + c.wifiSsid + '” → plak.';
+      }
+    }
+
+    setupIban();
+    setupWifi();
+  </script>
+</body>
+</html>
