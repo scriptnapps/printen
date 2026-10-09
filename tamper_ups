@@ -1,0 +1,774 @@
+// ==UserScript==
+// @name         UPS Logo Override + Remove Signature + Clickable Buttons
+// @namespace    http://tampermonkey.net/
+// @version      3.4
+// @description  ... + style submitbutton (disabled state preserved)
+// @author       You
+// @match        https://*.ups.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // ---------- 1. Logo link aanpassen ----------
+    function modifyLogoLink() {
+        const logoDiv = document.getElementById('logo');
+        if (!logoDiv) return false;
+        const logoLink = logoDiv.querySelector('a');
+        if (!logoLink) return false;
+        logoLink.href = 'https://ap.ups.com/REAP/retail.htm';
+        if (logoLink.hasAttribute('target')) logoLink.removeAttribute('target');
+        logoLink.target = '_self';
+        return true;
+    }
+
+    // ---------- 2. Signature button verwijderen ----------
+    function removeSignatureButton() {
+        const btn = document.getElementById('signatureBtn');
+        if (btn) { btn.remove(); return true; }
+        return false;
+    }
+
+    // ---------- 2b. Handtekeningblok verwijderen ----------
+    function removeHandtekeningblok() {
+        const signPad1 = document.getElementById('signPad1');
+        if (signPad1) {
+            signPad1.remove();
+            console.log('✅ "Ondertekenen met handtekeningblok" sectie verwijderd');
+            return true;
+        }
+        return false;
+    }
+
+    // ---------- 2c. Auto-focus op claimantName ----------
+    function autoFocusClaimantName() {
+        const field = document.getElementById('claimantName');
+        if (!field) return false;
+        if (field.dataset.upsFocused === 'true') return true;
+        field.dataset.upsFocused = 'true';
+        field.removeAttribute('readonly');
+        field.focus();
+        try {
+            const len = field.value.length;
+            field.setSelectionRange(len, len);
+        } catch (e) {}
+        return true;
+    }
+
+    // ---------- Helper: maak container klikbaar ----------
+    function makeContainerClickable(inputEl) {
+        let container = inputEl.parentElement;
+        while (container && container !== document.body) {
+            if (container.style && container.style.border) break;
+            container = container.parentElement;
+        }
+        if (!container || container === document.body) {
+            container = inputEl.parentElement;
+        }
+        if (container.dataset.upsClickable === 'true') return container;
+        container.dataset.upsClickable = 'true';
+        container.style.cursor = 'pointer';
+        container.onclick = function(e) {
+            if (e.target === inputEl) return;
+            inputEl.click();
+        };
+        return container;
+    }
+
+    // ---------- 3. Submit knop ----------
+    function setupSubmitButton() {
+        const submitBtn = document.getElementById('submit1');
+        if (!submitBtn) return false;
+        const container = makeContainerClickable(submitBtn);
+        if (!container) return false;
+        container.style.float = 'left';
+        if (container.dataset.upsEnlarged !== 'true') {
+            container.dataset.upsEnlarged = 'true';
+            container.style.width = '387px';
+        }
+        Array.from(container.children).forEach(d => {
+            if (d.tagName === 'DIV') {
+                d.style.float = 'none';
+                d.style.textAlign = 'center';
+            }
+        });
+        return container;
+    }
+
+    // ---------- 4. Cancel knop ----------
+    function setupCancelButton() {
+        const cancelBtn = document.getElementById('simple');
+        if (!cancelBtn) return false;
+        const container = makeContainerClickable(cancelBtn);
+        if (!container) return false;
+        container.style.float = 'right';
+        if (!container.style.width) container.style.width = '298px';
+        Array.from(container.children).forEach(d => {
+            if (d.tagName === 'DIV') {
+                d.style.float = 'none';
+                d.style.textAlign = 'center';
+            }
+        });
+        return container;
+    }
+
+    // ---------- 5. Clear knop ----------
+    function setupClearButton() {
+        const clearBtn = document.querySelector('input[onclick*="clearSignature"]');
+        if (!clearBtn) return false;
+        const container = makeContainerClickable(clearBtn);
+        if (!container) return false;
+        container.style.float = 'left';
+        Array.from(container.children).forEach(d => {
+            if (d.tagName === 'DIV') {
+                d.style.float = 'none';
+                d.style.textAlign = 'center';
+            }
+        });
+        return container;
+    }
+
+    // ---------- 6. buttonPanelWidth ----------
+    function fixButtonPanel() {
+        const panel = document.querySelector('.buttonPanelWidth');
+        if (!panel) return;
+        if (panel.dataset.upsFixed === 'true') return;
+        panel.dataset.upsFixed = 'true';
+        panel.style.width = '990px';
+        panel.style.minWidth = '990px';
+        panel.style.overflow = 'hidden';
+    }
+
+    // ---------- 7. Afronden knop ----------
+    function enlargeIndienenButton() {
+        const btn = document.getElementById('submitButton');
+        if (!btn) return false;
+        if (btn.dataset.upsDoubled !== 'true') {
+            btn.dataset.upsDoubled = 'true';
+            const rect = btn.getBoundingClientRect();
+            const w = rect.width || 80, h = rect.height || 20;
+            btn.style.width = (w * 2) + 'px';
+            btn.style.height = (h * 2) + 'px';
+            btn.style.fontSize = '2em';
+            btn.style.padding = '10px 20px';
+            btn.style.cursor = 'pointer';
+            btn.style.backgroundColor = '#28a745';
+            btn.style.color = '#ffffff';
+            btn.style.border = '2px solid #1e7e34';
+            btn.style.borderRadius = '6px';
+            btn.style.fontWeight = 'bold';
+        }
+        if (btn.value !== 'Afronden') btn.value = 'Afronden';
+        return true;
+    }
+
+    // ---------- 8. Handtekening/Krabbel knop ----------
+    function enlargeMouseSignButton() {
+        const btn = document.getElementById('mouseSignBtn');
+        if (!btn) return false;
+        if (btn.dataset.upsTripled !== 'true') {
+            btn.dataset.upsTripled = 'true';
+            const rect = btn.getBoundingClientRect();
+            const w = rect.width || 80, h = rect.height || 20;
+            btn.style.width = (w * 3) + 'px';
+            btn.style.height = (h * 3) + 'px';
+            btn.style.fontSize = '3em';
+            btn.style.padding = '15px 30px';
+            btn.style.cursor = 'pointer';
+            btn.style.backgroundColor = '#ff8c00';
+            btn.style.color = '#ffffff';
+            btn.style.border = '2px solid #cc7000';
+            btn.style.borderRadius = '8px';
+            btn.style.fontWeight = 'bold';
+        }
+        if (btn.value !== 'Handtekening / Krabbel') btn.value = 'Handtekening / Krabbel';
+        return true;
+    }
+
+    // ---------- 9. "Indienen" in btnStyles → "Verder", 2x, groen ----------
+    function setupDropOffButton() {
+        const btn = document.querySelector('.btnStyles input[onclick*="dropOffselection"]');
+        if (!btn) return false;
+
+        if (btn.dataset.upsVerder !== 'true') {
+            btn.dataset.upsVerder = 'true';
+            const rect = btn.getBoundingClientRect();
+            const w = rect.width || 80, h = rect.height || 20;
+            btn.style.width = (w * 2) + 'px';
+            btn.style.height = (h * 2) + 'px';
+            btn.style.fontSize = '2em';
+            btn.style.padding = '10px 20px';
+            btn.style.cursor = 'pointer';
+            btn.style.backgroundColor = '#28a745';
+            btn.style.color = '#ffffff';
+            btn.style.border = '2px solid #1e7e34';
+            btn.style.borderRadius = '6px';
+            btn.style.fontWeight = 'bold';
+        }
+
+        if (btn.value !== 'Verder') btn.value = 'Verder';
+        return true;
+    }
+
+    // ---------- 10. NIEUW: submitbutton (disabled) → "Verder", 2x, groen ----------
+    function setupDisabledSubmitButton() {
+        const btn = document.getElementById('submitbutton');
+        if (!btn) return false;
+
+        // Onthoud de originele disabled state VOORDAT we iets aanpassen
+        if (btn.dataset.upsOriginalDisabled === undefined) {
+            btn.dataset.upsOriginalDisabled = btn.disabled ? 'true' : 'false';
+        }
+
+        if (btn.dataset.upsStyled !== 'true') {
+            btn.dataset.upsStyled = 'true';
+
+            // Bereken huidige afmetingen
+            const rect = btn.getBoundingClientRect();
+            const w = rect.width || 80, h = rect.height || 20;
+
+            // 2x zo groot
+            btn.style.width = (w * 2) + 'px';
+            btn.style.height = (h * 2) + 'px';
+            btn.style.fontSize = '2em';
+            btn.style.padding = '10px 20px';
+
+            // GROEN
+            btn.style.backgroundColor = '#28a745';
+            btn.style.color = '#ffffff';
+            btn.style.border = '2px solid #1e7e34';
+            btn.style.borderRadius = '6px';
+            btn.style.fontWeight = 'bold';
+
+            console.log('✅ submitbutton gestyled (2x + groen)');
+        }
+
+        // Cursor: pointer alleen als NIET disabled
+        btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
+
+        // Als disabled: donkerdere/grijzere look (optioneel)
+        if (btn.disabled) {
+            btn.style.opacity = '0.6';
+            btn.style.backgroundColor = '#6c757d';   // grijs
+            btn.style.borderColor = '#495057';
+        } else {
+            btn.style.opacity = '1';
+            btn.style.backgroundColor = '#28a745';   // groen
+            btn.style.borderColor = '#1e7e34';
+        }
+
+        // Tekst wijzigen naar "Verder"
+        if (btn.value !== 'Verder') {
+            btn.value = 'Verder';
+            console.log('✅ Knoptekst submitbutton gewijzigd naar "Verder"');
+        }
+
+        return true;
+    }
+
+    // ---------- Gecombineerde uitvoering ----------
+    function attemptModification() {
+        modifyLogoLink();
+        removeSignatureButton();
+        removeHandtekeningblok();
+        autoFocusClaimantName();
+        setupSubmitButton();
+        setupCancelButton();
+        setupClearButton();
+        fixButtonPanel();
+        enlargeIndienenButton();
+        enlargeMouseSignButton();
+        setupDropOffButton();
+        setupDisabledSubmitButton();   // NIEUW
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attemptModification);
+    } else {
+        attemptModification();
+    }
+
+    window.addEventListener('load', function() {
+        setTimeout(attemptModification, 200);
+    });
+
+    const observer = new MutationObserver(function() {
+        attemptModification();
+    });
+
+    setTimeout(function() {
+        if (document.body) {
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+    }, 500);
+
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ==UserScript==
+// @name         UPS REAP Page Not Found Redirect
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Adds a button to go to retail.htm when PAGE NOT FOUND appears on submitReceipt.htm
+// @author       You
+// @match        https://ap.ups.com/REAP/submitReceipt.htm
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Check if the PAGE NOT FOUND alert exists
+    function checkForPageNotFound() {
+        const container = document.getElementById('container');
+        if (!container) return false;
+
+        const alertDiv = container.querySelector('.alert');
+        if (alertDiv && alertDiv.textContent.trim() === 'PAGE NOT FOUND') {
+            return true;
+        }
+        return false;
+    }
+
+    // Add the button to the page
+    function addRedirectButton() {
+        // Find the formContainer or the container to add the button
+        const formContainer = document.querySelector('.formContainer');
+        if (!formContainer) return;
+
+        // Check if button already exists to avoid duplicates
+        if (document.getElementById('redirectButton')) return;
+
+        // Create button
+        const button = document.createElement('button');
+        button.id = 'redirectButton';
+        button.textContent = 'HOME';
+        button.style.cssText = `
+            display: block;
+            margin: 20px auto;
+            padding: 12px 24px;
+            background-color: #0071cd;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        `;
+
+        // Add hover effect
+        button.addEventListener('mouseover', function() {
+            this.style.backgroundColor = '#005baa';
+        });
+        button.addEventListener('mouseout', function() {
+            this.style.backgroundColor = '#0071cd';
+        });
+
+        // Redirect on click
+        button.addEventListener('click', function() {
+            window.location.href = 'https://ap.ups.com/REAP/retail.htm';
+        });
+
+        // Add button after the alert or to the formContainer
+        const alertDiv = formContainer.querySelector('.alert');
+        if (alertDiv) {
+            formContainer.insertBefore(button, alertDiv.nextSibling);
+        } else {
+            formContainer.appendChild(button);
+        }
+    }
+
+    // Wait for the page to fully load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (checkForPageNotFound()) {
+                addRedirectButton();
+            }
+        });
+    } else {
+        if (checkForPageNotFound()) {
+            addRedirectButton();
+        }
+    }
+
+    // Also run after a short delay in case content loads dynamically
+    setTimeout(function() {
+        if (checkForPageNotFound()) {
+            addRedirectButton();
+        }
+    }, 1000);
+
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ==UserScript==
+// @name         UPS Auto fill email and continue
+// @namespace    http://tampermonkey.net/
+// @version      3.0
+// @description  Vult automatisch email in en klikt op continue knop op UPS login pagina. Als er een wachtwoord veld is, vult deze ook het wachtwoord in.
+// @match        https://auth.bp.ups.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    let attempts = 0;
+    const maxAttempts = 50;
+    const email = 'irfanalii2023@outlook.com';
+    const password = 'Irfanali!@#1';
+
+    function fillEmailAndClick() {
+        // Zoek naar het email veld
+        const emailField = document.querySelector('#username') ||
+                          document.querySelector('input[name="username"]') ||
+                          document.querySelector('input[type="email"]') ||
+                          document.querySelector('.input-wrapper input[type="email"]');
+
+        if (emailField) {
+            // Focus op het veld
+            emailField.focus();
+
+            // Stel de waarde in
+            emailField.value = email;
+
+            // Trigger alle nodige events
+            emailField.dispatchEvent(new Event('input', { bubbles: true }));
+            emailField.dispatchEvent(new Event('change', { bubbles: true }));
+            emailField.dispatchEvent(new Event('blur', { bubbles: true }));
+
+            // Extra: simuleren van toetsaanslagen
+            const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+            setValue.call(emailField, email);
+            emailField.dispatchEvent(new Event('input', { bubbles: true }));
+
+            console.log('✅ Email ingevuld: ' + email);
+
+            // Zoek naar een wachtwoord veld
+            const passwordField = document.querySelector('input[type="password"]') ||
+                                 document.querySelector('#password') ||
+                                 document.querySelector('input[name="password"]');
+
+            if (passwordField) {
+                // Wachtwoord veld gevonden, vul deze in
+                console.log('🔑 Wachtwoord veld gevonden, wachtwoord wordt ingevuld');
+
+                // Focus op het wachtwoord veld
+                passwordField.focus();
+
+                // Stel de waarde in
+                passwordField.value = password;
+
+                // Trigger alle nodige events
+                passwordField.dispatchEvent(new Event('input', { bubbles: true }));
+                passwordField.dispatchEvent(new Event('change', { bubbles: true }));
+                passwordField.dispatchEvent(new Event('blur', { bubbles: true }));
+
+                // Extra: simuleren van toetsaanslagen
+                const setPasswordValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+                setPasswordValue.call(passwordField, password);
+                passwordField.dispatchEvent(new Event('input', { bubbles: true }));
+
+                console.log('✅ Wachtwoord ingevuld');
+
+                // Zoek naar de login/sign-in knop (voor wachtwoord pagina)
+                const loginButton = document.querySelector('button[data-action-button-primary="true"]') ||
+                                   document.querySelector('button[type="submit"]') ||
+                                   document.querySelector('button:has-text("Sign In")') ||
+                                   document.querySelector('button:has-text("Log In")') ||
+                                   document.querySelector('._button-login-id') ||
+                                   document.querySelector('button[name="action"]');
+
+                if (loginButton) {
+                    setTimeout(function() {
+                        loginButton.click();
+                        console.log('✅ Login knop aangeklikt met wachtwoord');
+                    }, 500);
+                    return true;
+                } else {
+                    console.log('❌ Login knop niet gevonden op wachtwoord pagina');
+                    return false;
+                }
+            } else {
+                // Geen wachtwoord veld, klik op continue knop
+                console.log('ℹ️ Geen wachtwoord veld gevonden, klik op continue knop');
+
+                const continueButton = document.querySelector('button[data-action-button-primary="true"]') ||
+                                      document.querySelector('button[name="action"]') ||
+                                      document.querySelector('button[type="submit"]') ||
+                                      document.querySelector('._button-login-id');
+
+                if (continueButton) {
+                    setTimeout(function() {
+                        continueButton.click();
+                        console.log('✅ Continue knop aangeklikt');
+                    }, 500);
+                    return true;
+                } else {
+                    console.log('❌ Continue knop niet gevonden');
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Probeer direct
+    if (!fillEmailAndClick()) {
+        // Als niet gevonden, probeer elke seconde opnieuw
+        const interval = setInterval(function() {
+            attempts++;
+            if (fillEmailAndClick()) {
+                clearInterval(interval);
+                console.log('✅ Succesvol ingevuld en geklikt na ' + attempts + ' pogingen');
+            } else if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.log('❌ Velden niet gevonden na ' + maxAttempts + ' pogingen');
+            }
+        }, 1000);
+    }
+
+    // Ook reageren op DOM veranderingen
+    const observer = new MutationObserver(function(mutations) {
+        fillEmailAndClick();
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // Stop de observer na 15 seconden om overbodig zoeken te voorkomen
+    setTimeout(function() {
+        observer.disconnect();
+        console.log('🔍 Observer gestopt na 15 seconden');
+    }, 15000);
+
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ==UserScript==
+// @name         New Userscript
+// @namespace    http://tampermonkey.net/
+// @version      2026-09-08
+// @description  try to take over the world!
+// @author       You
+// @match        https://ap.ups.com/REAP/customerPickup.htm
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=ups.com
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var input = document.getElementById('searchInputParameter');
+        if (input) {
+            input.focus();
+        }
+    });
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ==UserScript==
+// @name         Automatisch Printen
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Opent automatisch het printdialoogvenster bij het laden van een pagina
+// @author       Jouw Naam
+// @match        https://ap.ups.com/REAP/viewLabel.htm?labelId=*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+     'use strict';
+    window.print();
+     setTimeout(function() {
+         window.close();
+    }, 900);
+
+     setTimeout(function() {
+        window.location.href = 'about:blank';
+    }, 2000);
+
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
